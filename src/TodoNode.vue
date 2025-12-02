@@ -1,78 +1,93 @@
 <template>
-  <div class="todo-node">
+  <div class="flow-node-card todo-node" :class="data.className">
     <Handle type="target" :position="Position.Left" />
     
-    <div class="title">请选择节点类型</div>
-    <div class="actions nodrag">
-      <button class="btn-logic" @click="data.changeType({ id, type: 'logic' })">
-        逻辑节点 (分叉)
+    <div class="flow-node-header">
+      <span class="icon">✨</span> 请选择类型
+      <div class="flow-node-delete" @click.stop="data.deleteNode(id)">×</div>
+    </div>
+
+    <div class="flow-node-body nodrag">
+      <button 
+        class="choice-btn logic flow-node-btn" 
+        @click="data.changeType({ id, type: 'logic' })"
+      >
+        <span class="btn-icon">🔀</span> 逻辑分叉
       </button>
-      <button class="btn-content" @click="data.changeType({ id, type: 'content' })">
-        内容节点 (终点)
+      
+      <button 
+        class="choice-btn content flow-node-btn" 
+        @click="data.changeType({ id, type: 'content' })"
+      >
+        <span class="btn-icon">📄</span> 内容节点
       </button>
     </div>
-    <div class="delete-handle" @click.stop="data.deleteNode(id)">×</div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { Handle, Position } from '@vue-flow/core';
-
 defineProps(['id', 'data']);
-defineEmits(['change-type', 'delete-node']);
 </script>
 
 <style scoped>
+/* 引入公共样式 */
+@import url('@/flow-node-base.css');
+
+/* === 组件特定样式 (Theme) === */
+
+/* 1. 尺寸与基础边框色 (橙色系) */
 .todo-node {
-  padding: 15px;
-  border-radius: 8px;
-  background: #fff;
-  border: 2px dashed #ff9800; /* 虚线表示待定 */
-  min-width: 180px;
-  text-align: center;
-  position: relative;
-  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+  width: 180px;
+  /* border-color: #e6a23c; */
+  border-color: #ffd597;
 }
 
-.title {
-  font-size: 12px;
-  color: #666;
-  margin-bottom: 10px;
+.todo-node.is-hovered,
+.todo-node:hover {
+  /* 悬停时加深阴影颜色 */
+  border-color: #ffa216;
 }
 
-.actions {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+/* 2. 头部配色 (橙色系) */
+.flow-node-header {
+  background: #fdf6ec;
+  color: #e6a23c;
+  border-bottom-color: #faecd8;
 }
 
-button {
+/* 3. 内部按钮样式 */
+.choice-btn {
+  width: 100%;
   border: none;
-  padding: 6px;
-  border-radius: 4px;
+  padding: 8px 12px;
+  border-radius: 6px;
   cursor: pointer;
   font-size: 12px;
-  transition: opacity 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.2s;
 }
-button:hover { opacity: 0.8; }
 
-.btn-logic { background: #e3f2fd; color: #1565c0; }
-.btn-content { background: #f5f5f5; color: #333; }
-
-.delete-handle {
-  position: absolute;
-  top: -8px;
-  right: -8px;
-  width: 20px;
-  height: 20px;
-  background: #ff4d4f;
+.choice-btn.logic {
+  background: #ecf5ff;
+  color: #409eff;
+  border: 1px solid #d9ecff;
+}
+.choice-btn.logic:hover {
+  background: #409eff;
   color: white;
-  border-radius: 50%;
-  text-align: center;
-  line-height: 18px;
-  font-size: 14px;
-  cursor: pointer;
-  display: none; /* 悬停显示 */
 }
-.todo-node:hover .delete-handle { display: block; }
+
+.choice-btn.content {
+  background: #f4f4f5;
+  color: #909399;
+  border: 1px solid #e9e9eb;
+}
+.choice-btn.content:hover {
+  background: #909399;
+  color: white;
+}
 </style>

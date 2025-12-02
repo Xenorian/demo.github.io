@@ -1,50 +1,80 @@
 <template>
-  <div class="content-node">
+  <div class="flow-node-card content-node" :class="data.className">
     <Handle type="target" :position="Position.Left" />
     
-    <div class="node-header">条件描述</div>
-    <div class="node-content nodrag">
-      <textarea v-model="data.label" placeholder="输入条件..." rows="3"></textarea>
+    <div class="flow-node-header">
+      <span class="icon">📄</span> 条件描述
+      <div class="flow-node-delete" @click.stop="data.deleteNode(id)">×</div>
+    </div>
+
+    <div class="flow-node-body nodrag">
+      <textarea 
+        class="content-textarea"
+        v-model="data.label" 
+        placeholder="请输入详细条件..." 
+        rows="3"
+        @mousedown.stop 
+      ></textarea>
     </div>
     
-    <div class="delete-handle" @click.stop="data.deleteNode(id)">×</div>
     </div>
 </template>
 
 <script setup lang="ts">
-import { Handle, Position } from '@vue-flow/core'; // 修复 TS 错误
+import { Handle, Position } from '@vue-flow/core';
+
 defineProps(['id', 'data']);
-defineEmits(['delete-node']);
 </script>
 
 <style scoped>
-/* 保持原有样式，增加定位和删除按钮 */
-.content-node {
-  padding: 10px;
-  border-radius: 8px;
-  background: #f5f5f5;
-  border: 2px solid #9e9e9e;
-  min-width: 180px;
-  position: relative;
-  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
-}
-.node-header { font-size: 12px; color: #666; margin-bottom: 5px; }
-.node-content textarea { width: 100%; resize: vertical; padding: 5px; border-radius: 4px; border: 1px solid #ccc; font-family: inherit; }
+/* 引入公共样式 */
+@import url('@/flow-node-base.css');
 
-.delete-handle {
-  position: absolute;
-  top: -8px;
-  right: -8px;
-  width: 20px;
-  height: 20px;
-  background: #ff4d4f;
-  color: white;
-  border-radius: 50%;
-  text-align: center;
-  line-height: 18px;
-  font-size: 14px;
-  cursor: pointer;
-  display: none;
+/* === 组件特定样式 (Theme) === */
+
+/* 1. 尺寸与基础边框色 (灰色/标准系) */
+.content-node {
+  width: 220px;       /* 保持原有的宽度 */
+  border-color: #dcdfe6;
 }
-.content-node:hover .delete-handle { display: block; }
+
+.content-node.is-hovered,
+.content-node:hover {
+  border-color: #409eff; /* 悬停变蓝 */
+  /* 阴影效果已由 flow-node-card 自动处理 */
+}
+
+/* 2. 头部配色 (素雅灰) */
+.flow-node-header {
+  background: #f5f7fa;
+  color: #606266;
+  border-bottom-color: #ebeef5;
+}
+
+/* 3. 内部元素样式 (Textarea) */
+.content-textarea {
+  width: 100%;
+  border: 1px solid #e4e7ed;
+  border-radius: 4px;
+  padding: 8px;
+  font-size: 12px;
+  color: #303133;
+  line-height: 1.5;
+  outline: none;
+  background-color: #fff;
+  resize: vertical; 
+  min-height: 60px;
+  font-family: inherit;
+  transition: border-color 0.2s, background-color 0.2s;
+  display: block;
+}
+
+.content-textarea:focus {
+  border-color: #409eff;
+  background-color: #f9fcff;
+}
+
+.content-textarea::placeholder {
+  color: #c0c4cc;
+}
 </style>
