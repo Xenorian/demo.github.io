@@ -7,7 +7,7 @@
 
     <el-scrollbar class="expression-block" always>
       <div v-if="expressionList.length === 0" class="expression-content">
-        <el-empty description="暂无逻辑流" :image-size="60" />
+        <el-empty description="暂无逻辑流" :image-size="30" />
       </div>
 
       <div v-else class="expression-content">
@@ -71,6 +71,9 @@ const handleMouseLeave = (token: ExprToken) => {
   flex-direction: row;
   margin-top: auto;
   height: 20%;
+
+  width: 100%;
+  overflow: hidden; // 防止内容溢出
 }
 
 .sidebar-header {
@@ -80,6 +83,7 @@ const handleMouseLeave = (token: ExprToken) => {
   flex-direction: column;
   justify-content: center;
   align-items: center;
+  flex-shrink: 0; // 防止标题栏被压缩
 
   h3 {
     margin: 0 0 10px 0px;
@@ -91,6 +95,7 @@ const handleMouseLeave = (token: ExprToken) => {
 
 .expression-block {
   flex-grow: 1;
+  width: 0;
   height: 100%;
   border-bottom: 1px dashed var(--el-border-color-lighter);
   
@@ -106,7 +111,7 @@ const handleMouseLeave = (token: ExprToken) => {
     height: 100%; 
     // 将 Viewport 设置为 Flex 容器，用于居中其子元素 expression-content
     display: flex; 
-    justify-content: center; // 水平居中
+    justify-content: safe center; // 如果支持的话
     align-items: center;     // 垂直居中
   }
 }
@@ -126,6 +131,8 @@ const handleMouseLeave = (token: ExprToken) => {
   color: var(--el-text-color-regular);
   word-break: break-word;
   padding: 0 10px; // 增加左右内边距，防止内容贴边
+
+  min-width: min-content;
 }
 
 /* Token 样式保持不变 */

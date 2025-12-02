@@ -347,9 +347,9 @@ html,
 body,
 #app {
   height: 100%;
+  width: 100%;
   margin: 0;
-  overflow-x: hidden;
-  overflow-y: hidden; /* 确保不会出现水平滚动条 */
+  border: 0;
 }
 
 .layout-container {
@@ -397,6 +397,9 @@ body,
     flex-grow: 1; /* 占据所有剩余宽度 */
     display: flex; /* 再次启用 Flexbox */
     flex-direction: column; /* **关键：将主轴方向改为垂直 (从上到下)** */
+
+    overflow: hidden;
+    width: 0;
 }
 
 .flow-container {
