@@ -19,8 +19,9 @@ logging.basicConfig(level=logging.DEBUG)
 origins = [
     "http://127.0.0.1:5173",  # 您的前端开发服务器地址
     "http://localhost:5173",   # 另一个可能的本地地址
-    "http://localhost:5173",   # 另一个可能的本地地址
-    # "https://your-production-frontend.com", # 如果未来有生产环境，也需要添加
+    "http://frp-cup.com:12140",   # 另一个可能的本地地址
+    "https://xenorian.github.io/demo.github.io/", # 如果未来有生产环境，也需要添加
+    "http://xenorian.github.io/demo.github.io/", # 如果未来有生产环境，也需要添加
 ]
 
 # --- 辅助结构定义 ---

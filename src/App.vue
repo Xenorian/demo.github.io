@@ -58,7 +58,7 @@ import RuleForm from './RuleForm.vue';
 // AI part
 import axios from 'axios';
 import { RuleOutputSchema } from './RuleResponseSchema'
-const apiUrl = 'http://localhost:8000/api/generate-rule'
+const apiUrl = 'http://frp-cup.com:12140/api/generate-rule'
 
 import '@vue-flow/core/dist/style.css';
 
