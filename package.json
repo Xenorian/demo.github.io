@@ -14,22 +14,26 @@
     "type-check": "vue-tsc --build",
     "lint": "eslint . --fix --cache",
     "format": "prettier --write --experimental-cli src/",
-
-    "build:skip-check": "npm run build-only", 
+    "build:skip-check": "npm run build-only",
     "deploy": "npm run build:skip-check"
   },
   "dependencies": {
+    "@langchain/core": "^1.1.1",
+    "@langchain/openai": "^1.1.3",
     "@vue-flow/background": "^1.3.2",
     "@vue-flow/controls": "^1.1.3",
     "@vue-flow/core": "^1.48.0",
     "@vueuse/core": "^14.1.0",
+    "axios": "^1.13.2",
     "dagre": "^0.8.5",
     "element-plus": "^2.11.9",
+    "langchain": "^1.1.2",
     "nanoid": "^5.1.6",
     "pinia": "^3.0.4",
     "sass-embedded": "^1.93.3",
     "vue": "^3.5.25",
-    "vue-router": "^4.6.3"
+    "vue-router": "^4.6.3",
+    "zod": "^4.1.13"
   },
   "devDependencies": {
     "@tsconfig/node24": "^24.0.3",

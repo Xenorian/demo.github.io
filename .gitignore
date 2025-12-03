@@ -34,3 +34,6 @@ coverage
 
 # Vitest
 __screenshots__/
+backend/run
+backend/uploaded_files
+backend/run.sh

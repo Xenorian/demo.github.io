@@ -1,9 +1,19 @@
 <template>
   <div class="layout-container">
     <div class="sidebar">
-      <h3>逻辑树设计器</h3>
-      <p>点击下方按钮开始。</p>
-      <button @click="addRootTodo">新建根节点 (TODO)</button>
+      <h3>规则解析</h3>
+
+      <el-scrollbar>
+        <RuleForm v-model="formData" />
+      </el-scrollbar>
+
+      <el-button type="primary" @click="handleParseRule" :loading="isParsing" :disabled="isParsing"
+        class="parse-button">
+        {{ isParsing ? '解析中...' : '规则解析' }}
+      </el-button>
+
+      <el-button type="danger" @click="addRootTodo">新建根节点 (清空现有内容)</el-button>
+
       <div class="tips">
         提示：
         <ul>
@@ -36,12 +46,19 @@ import { Background } from '@vue-flow/background';
 import { Controls } from '@vue-flow/controls';
 import { nanoid } from 'nanoid';
 import dagre from 'dagre';
+import { ElMessage } from 'element-plus'
 
 // 导入自定义节点
 import LogicNode from './LogicNode.vue';
 import ContentNode from './ContentNode.vue';
 import TodoNode from './TodoNode.vue'; // 新增
 import DisplayLogic from './DisplayLogic.vue';
+import RuleForm from './RuleForm.vue';
+
+// AI part
+import axios from 'axios';
+import { RuleOutputSchema } from './RuleResponseSchema'
+const apiUrl = 'http://localhost:8000/api/generate-rule'
 
 import '@vue-flow/core/dist/style.css';
 
@@ -189,29 +206,38 @@ const layoutGraph = async (fit = false) => {
 const createNode = (
   type: 'logic' | 'content' | 'todo',
   position: { x: number; y: number },
-  data = {}
+  data: { 
+        logicType?: 'AND' | 'OR' | ''; 
+        label?: number | string | null;
+        [key: string]: any; // 允许其他额外的 data 字段
+    } = {},
+  id?: string // 接受可选的 ID
 ): Node => {
+  const nodeId = id ?? getId(type);
+  const formattedLabel = data.label !== undefined && data.label !== null ? String(data.label) : '';
+
   return {
-    id: getId(type),
-    type,
-    position,
-    draggable: false, // 禁止拖拽
-    data: {
-      className: '',
-      logicType: 'AND',
-      label: '',
-      ...data,
-      // 传递函数引用
-      changeType: handleChangeType,  // 用于 TodoNode
-      addChild: handleAddChild,      // 用于 LogicNode
-      deleteNode: handleDeleteNode   // 用于所有节点
-    },
+      id: nodeId,
+      type,
+      position,
+      draggable: false, // 禁止拖拽
+      data: {
+          className: '',
+          logicType: data.logicType ?? '',
+          label: formattedLabel, 
+          // 确保后端数据可以覆盖默认值
+          ...data, 
+          // 传递函数引用（假设这些函数在外部作用域中可用）
+          changeType: handleChangeType, 
+          addChild: handleAddChild, 
+          deleteNode: handleDeleteNode 
+      },
   };
 };
 
-const createEdge = (sourceId: string, targetId: string): Edge => {
+const createEdge = (sourceId: string, targetId: string, id?: string): Edge => {
   return {
-    id: getId('edge'),
+    id: id ?? `e${sourceId}-${targetId}`, // 优先使用给定ID
     source: sourceId,
     target: targetId,
     type: '', // 横向布局用贝塞尔曲线更美观
@@ -339,6 +365,149 @@ function handleDeleteNode(nodeId: string) {
   layoutGraph(true)
 }
 
+
+
+// 调用大模型解析规则
+const formData = ref({
+  name: '',
+  description: '',
+  category: 'General',
+  severity: 'medium',
+  urls: [],
+  rawFiles: [],
+});
+// 按钮加载状态
+const isParsing = ref(false);
+
+// ----------------- LLM API 调用逻辑 -----------------
+
+/**
+ * 模拟调用 OpenAI 兼容的 LLM API
+ */
+async function callLLMApi(data: { 
+    name: string; 
+    description: string; 
+    urls: string[]; 
+    rawFiles: File[]; 
+}): Promise<RuleOutputSchema> {
+  console.log(data)
+  const formData = new FormData();
+  formData.append('rule_name', data.name);
+  formData.append('rule_intent', data.description);
+  if (data.urls.length > 0) {
+    for (let i = 0; i < data.urls.length; i++) {
+      // 使用相同的键名 'files'
+      formData.append('files', data.rawFiles[i], data.rawFiles[i].name);
+    }
+  }
+
+  try {
+        const response = await axios.post(apiUrl, formData,
+            {
+                // 可选：设置上传进度监听
+                onUploadProgress: (progressEvent) => {
+                    const total = progressEvent.total ?? 1; // 确保 total 不为 0 或 undefined
+                    const percentCompleted = Math.round((progressEvent.loaded * 100) / total);
+                    console.log(`上传进度: ${percentCompleted}%`);
+                },
+                // 确保您之前设置了 CORS 允许的凭证
+                withCredentials: true
+            }
+        );
+
+        console.log('API Response:', response);
+
+        // 3. 返回类型断言和数据
+        // TypeScript 会知道 response.data 的结构是 RuleOutputSchema
+        return response.data as RuleOutputSchema; 
+        
+    } catch (error) {
+        // 4. 健壮的错误处理
+        if (axios.isAxiosError(error) && error.response) {
+            console.error('API Error Response:', error.response.data);
+            // 抛出包含后端错误信息的异常
+            throw new Error(`规则生成失败 (${error.response.status}): ${error.response.data.detail || '服务器处理错误'}`);
+        } else {
+            console.error('Network or Unknown Error:', error);
+            throw new Error('网络请求或未知错误导致规则生成失败。');
+        }
+    }
+}
+
+
+/**
+ * 按钮点击事件处理函数
+ */
+
+const handleParseRule = async () => {
+  if (isParsing.value) return; // 防止重复点击
+
+  if (!formData.value.name || !formData.value.description) {
+    ElMessage.warning('规则名称和描述（监管意图）不能为空。');
+    return;
+  }
+
+
+  // 1. 设置加载状态
+  isParsing.value = true;
+  ElMessage.primary('开始调用 LLM 解析规则...');
+
+  nodes.value = [];
+  edges.value = [];
+
+  try {
+    // 2. 准备发送给 LLM 的数据副本
+    const dataToSend = formData.value;
+
+    // 3. 调用 LLM API
+    const parsedData = await callLLMApi(dataToSend);
+    console.log(parsedData)
+
+    // 4. 更新 formData (只更新 LLM 应该修改的字段)
+    console.log(parsedData.alert_message)
+
+    parsedData.trigger_logic.nodes.forEach(backendNode => {
+        const position = { 
+            x: 0, 
+            y: 0 
+        };
+
+        const newNode = createNode(
+            backendNode.type, 
+            position, 
+            backendNode.data,
+            backendNode.id // 传递后端 ID
+        );
+        nodes.value.push(newNode);
+    });
+
+    parsedData.trigger_logic.edges.forEach(backendEdge => {
+        // 注意：后端返回的边已经包含了 source 和 target ID，且是字符串类型，可以直接使用
+        const newEdge = createEdge(
+            backendEdge.source, 
+            backendEdge.target,
+            // 可以在这里添加 edge.id 或其他数据，但 createEdge 函数需要修改以接收更多参数
+            // 假设 createEdge 仅需要 sourceId 和 targetId
+        );
+        edges.value.push(newEdge);
+    });
+    
+    const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+    await wait(500);
+
+    layoutGraph(true)
+    layoutGraph(true)
+
+    ElMessage.success('规则解析完成，已自动填充表单。');
+
+  } catch (error) {
+    ElMessage.error(error.message || '规则解析过程中出现未知错误。');
+  } finally {
+    // 5. 恢复加载状态
+    isParsing.value = false;
+  }
+};
+
 </script>
 
 <style>
@@ -359,7 +528,7 @@ body,
 }
 
 .sidebar {
-  width: 250px;
+  width: 300px;
   background: #f0f2f5;
   padding: 20px;
   display: flex;
@@ -368,19 +537,25 @@ body,
   border-right: 1px solid var(--el-border-color-lighter);
 }
 
+.sidebar .el-scrollbar {
+  padding: 20px;
+  padding-left: 0px;
+}
+
 .sidebar button {
   padding: 10px 15px;
-  background-color: #409eff;
   color: white;
   border: none;
   border-radius: 4px;
   cursor: pointer;
   font-weight: bold;
-  margin-bottom: 10px;
+  margin-bottom: 15px;
+  margin-left: 0px;
 }
 
-.sidebar button:hover {
-  background-color: #66b1ff;
+.sidebar .el-button {
+  margin-left: 0 !important;
+  /* 强制移除行内元素带来的 margin */
 }
 
 .tips {
@@ -394,12 +569,15 @@ body,
 }
 
 .right-content {
-    flex-grow: 1; /* 占据所有剩余宽度 */
-    display: flex; /* 再次启用 Flexbox */
-    flex-direction: column; /* **关键：将主轴方向改为垂直 (从上到下)** */
+  flex-grow: 1;
+  /* 占据所有剩余宽度 */
+  display: flex;
+  /* 再次启用 Flexbox */
+  flex-direction: column;
+  /* **关键：将主轴方向改为垂直 (从上到下)** */
 
-    overflow: hidden;
-    width: 0;
+  overflow: hidden;
+  width: 0;
 }
 
 .flow-container {
@@ -411,9 +589,10 @@ body,
 
 .logic-container {
   /* 您的原有样式略作修改 */
-  width: 100%; /* 宽度占满父容器 */
+  width: 100%;
+  /* 宽度占满父容器 */
   height: 15%;
   background-color: var(--el-bg-color);
-  display: flex; 
+  display: flex;
 }
 </style>
